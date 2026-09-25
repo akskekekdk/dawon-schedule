@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!--DAWON-APP-->
-<meta name="app-version" content="2026.09.25-16">
+<meta name="app-version" content="2026.09.25-17">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#7fd3f5">
 <script>try{var t=localStorage.getItem('dawon-theme');if(/^(ww|cf|nl)$/.test(t))document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
@@ -308,7 +308,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
     </div>
   </div>
 </div>
-<div class="ver">버전 2026.09.25-16</div>
+<div class="ver">버전 2026.09.25-17</div>
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn" type="button">되돌리기</button></div>
 
 <script>
@@ -462,7 +462,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
     return a.t-b.t;
   }
   function byDate(k){return events.filter(function(e){return occursOn(e,k)}).sort(cmp)}
-  function shortTime(t){if(!t)return '';var h=+t.slice(0,2),m=t.slice(3,5);return m==='00'?h+'시':h+':'+m}
+  function shortTime(t){if(!t)return '';var h=+t.slice(0,2),m=+t.slice(3,5);return h+'시'+(m?' '+m+'분':'')}
   function findEv(id){for(var i=0;i<events.length;i++) if(events[i].id===id) return events[i]; return null}
   function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
   var $=function(id){return document.getElementById(id)};
