@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!--DAWON-APP-->
-<meta name="app-version" content="2026.09.25-3">
+<meta name="app-version" content="2026.09.25-4">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#7fd3f5">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,7 +26,7 @@ body{background:#bfeaf7;color:var(--ink);
   padding:calc(env(safe-area-inset-top) + 16px) 14px calc(env(safe-area-inset-bottom) + 40px)}
 
 /* 나무 간판 제목 */
-header{position:relative;display:inline-block;padding:12px 22px 12px 52px;border-radius:18px;
+header{position:relative;display:block;width:fit-content;margin:0 auto;text-align:center;padding:12px 22px 12px 52px;border-radius:18px;
   background:repeating-linear-gradient(0deg,var(--wood) 0 14px,#c48755 14px 16px);
   border:4px solid var(--wood-d);box-shadow:0 5px 0 var(--wood-d),0 10px 18px rgba(80,50,20,.25);color:#fff8e8}
 header::before{content:"";position:absolute;left:14px;top:50%;width:26px;height:26px;margin-top:-13px;
@@ -103,6 +103,11 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
 .item .who{flex:none;font-size:13px;padding:3px 10px;border-radius:999px;color:#fff}
 .item.sw .who{background:var(--blue)}.item.dy .who{background:var(--red)}
 .item .txt{flex:1;min-width:0;font-size:16px;word-break:break-all}
+.item .txt .pl{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:13px;color:#fff;background:#03c75a;
+  padding:3px 10px;border-radius:999px;text-decoration:none;box-shadow:0 2px 0 #02a049;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .txt .pl b{font-weight:400;background:#fff;color:#03c75a;border-radius:4px;padding:0 3px;font-size:11px;line-height:14px}
+.compose .mapbtn{background:#03c75a;box-shadow:0 4px 0 #02a049;padding:0 14px}
+.chip .pin{font-size:9px}
 .item .d{flex:none;font-size:13px;color:var(--muted);width:58px}
 .del{flex:none;width:32px;height:32px;border-radius:50%;border:0;background:var(--cream2);color:var(--ink);font:inherit;font-size:18px;cursor:pointer;line-height:1}
 .del:active{background:var(--red);color:#fff}
@@ -133,6 +138,10 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
   </div>
   <div class="compose">
     <input id="text" type="text" maxlength="60" placeholder="일정 내용 (비우면 이름만)" autocomplete="off">
+  </div>
+  <div class="compose">
+    <input id="place" type="text" maxlength="60" placeholder="📍 장소 (선택)" autocomplete="off">
+    <button id="mapCheck" type="button" class="mapbtn" aria-label="네이버 지도에서 장소 확인">지도</button>
     <button id="addBtn" type="button">추가</button>
   </div>
   <div class="bubble"><div class="hint" id="hint"></div><div class="sync" id="sync"></div></div>
@@ -159,7 +168,7 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
     <div class="list" id="monthList"></div>
   </section>
 </div>
-<div class="ver">버전 2026.09.25-3</div>
+<div class="ver">버전 2026.09.25-4</div>
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn" type="button">되돌리기</button></div>
 
 <script>
@@ -200,15 +209,15 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
     if(e.status===403||e.code==='42501'||/forbidden/.test(e.message||'')) return '이 앱의 비밀값이 서버와 맞지 않아요'; if(e.code==='PGRST202') return '서버에 새 SQL(함수)을 실행해 주세요'; if(false) return '서버 권한 정책(policy)이 없어요 · SQL의 policy 부분을 실행해 주세요';
     return '서버 오류 ('+e.status+(e.code?' '+e.code:'')+')';
   }
-  function toRow(e){ return {id:e.id,date:e.date,who:e.who,text:e.text,created_at:new Date(e.t).toISOString()}; }
-  function fromRow(r){ return {id:r.id,date:r.date,who:r.who,text:r.text,t:r.created_at?Date.parse(r.created_at):0}; }
+  function toRow(e){ return {id:e.id,date:e.date,who:e.who,text:e.text,place:e.place||null,created_at:new Date(e.t).toISOString()}; }
+  function fromRow(r){ return {id:r.id,date:r.date,who:r.who,text:r.text,place:r.place||'',t:r.created_at?Date.parse(r.created_at):0}; }
   function setStatus(ok,msg,err){ online=ok; var s=$('sync'); if(!s)return; s.className='sync '+(ok?'on':'off')+(err?' err':''); s.textContent=msg||(ok?'서버에 연결됨 · 일정이 자동으로 저장·공유돼요':'오프라인'); }
   function flushQueue(){
     if(!queue.length) return Promise.resolve();
     var op=queue[0];
     var r=op.row;
     var p=op.op==='ins'
-      ? sbFetch('rpc/dawon_add',{method:'POST',body:{p_secret:SECRET,p_id:r.id,p_date:r.date,p_who:r.who,p_text:r.text,p_created:r.created_at}})
+      ? sbFetch('rpc/dawon_add',{method:'POST',body:{p_secret:SECRET,p_id:r.id,p_date:r.date,p_who:r.who,p_text:r.text,p_created:r.created_at,p_place:r.place||null}})
       : sbFetch('rpc/dawon_delete',{method:'POST',body:{p_secret:SECRET,p_id:op.id}});
     return p.then(function(){ queue.shift(); save(); return flushQueue(); });
   }
@@ -291,7 +300,10 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
     if(showDate){ var dd=parse(e.date); r.appendChild(el('span','d',(dd.getMonth()+1)+'/'+dd.getDate()+' '+DOW[dd.getDay()][0])); r.classList.add('clickable');
       r.addEventListener('click',function(ev){ if(ev.target.closest('.del'))return; selectDate(parse(e.date)); }); }
     r.appendChild(el('span','who',NAMES[e.who]));
-    r.appendChild(el('span','txt',e.text));
+    var tx=el('span','txt'); tx.appendChild(el('div',null,e.text));
+    if(e.place){ var a=el('a','pl'); a.href=mapUrl(e.place); a.appendChild(el('b',null,'N')); a.appendChild(document.createTextNode(' '+e.place));
+      a.addEventListener('click',function(ev){ ev.stopPropagation(); ev.preventDefault(); openMap(e.place); }); tx.appendChild(a); }
+    r.appendChild(tx);
     var x=el('button','del','×'); x.type='button'; x.setAttribute('aria-label','삭제');
     x.addEventListener('click',function(ev){ ev.stopPropagation(); remove(e.id); });
     r.appendChild(x);
@@ -319,8 +331,9 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
   function addEvent(k){
     if(!who){ toast('먼저 상원이나 다윤을 골라주세요',false); return false; }
     var inp=$('text'), t=inp.value.trim()||NAMES[who];
-    var ne={id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),date:k,who:who,text:t,t:Date.now()};
-    events.push(ne); save(); pushInsert(ne); inp.value='';
+    var pl=$('place').value.trim();
+    var ne={id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),date:k,who:who,text:t,place:pl,t:Date.now()};
+    events.push(ne); save(); pushInsert(ne); inp.value=''; $('place').value='';
     toast(NAMES[who]+' 일정 추가 · '+label(parse(k)),false);
     return true;
   }
@@ -329,6 +342,8 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
     if(i<0)return; lastDeleted=events.splice(i,1)[0]; save(); pushDelete(id);
     renderGrid();renderLists(); toast('일정을 지웠어요',true);
   }
+  function mapUrl(q){ return 'https://map.naver.com/p/search/'+encodeURIComponent(q); }
+  function openMap(q){ if(!q){ toast('장소를 먼저 적어주세요',false); return; } location.href=mapUrl(q); }
   function toast(msg,undo){
     $('toastMsg').textContent=msg; $('undoBtn').style.display=undo?'':'none';
     var t=$('toast'); t.classList.add('show'); clearTimeout(toastTimer);
@@ -345,6 +360,8 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
   document.querySelectorAll('.pbtn').forEach(function(b){
     b.addEventListener('click',function(){ var w=b.getAttribute('data-who'); who=(who===w)?null:w; renderPeople(); });
   });
+  $('mapCheck').addEventListener('click',function(){ openMap($('place').value.trim()); });
+  $('place').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); if(addEvent(key(sel))){renderGrid();renderLists();} this.blur(); } });
   $('addBtn').addEventListener('click',function(){ if(addEvent(key(sel))){renderGrid();renderLists();} });
   $('text').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); if(addEvent(key(sel))){renderGrid();renderLists();} this.blur(); } });
   $('prev').addEventListener('click',function(){ viewM--; if(viewM<0){viewM=11;viewY--;} renderGrid();renderLists(); });
