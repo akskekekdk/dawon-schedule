@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!--DAWON-APP-->
-<meta name="app-version" content="2026.09.25-12">
+<meta name="app-version" content="2026.09.25-13">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#7fd3f5">
 <script>try{var t=localStorage.getItem('dawon-theme');if(/^(ww|cf|nl)$/.test(t))document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
@@ -265,7 +265,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
     <div id="themeGrid"></div>
   </div>
 </div>
-<div class="ver">버전 2026.09.25-12</div>
+<div class="ver">버전 2026.09.25-13</div>
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn" type="button">되돌리기</button></div>
 
 <script>
@@ -426,7 +426,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
 
   // ---------- 그리기 ----------
   function renderHeader(){
-    $('selLabel').textContent=label(sel);
+    $('selLabel').textContent=label(today);
     $('dayTitle').textContent=label(sel);
     renderDdays();
   }
@@ -691,7 +691,9 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
   if(!SECRET){ setStatus(false,'이 페이지는 두 사람의 앱에서만 일정을 볼 수 있어요',true); return; }
   sync();
   setInterval(sync,10000);
-  document.addEventListener('visibilitychange',function(){ if(!document.hidden) sync(); });
+  function refreshToday(){ var n=new Date(); n.setHours(0,0,0,0); if(n.getTime()!==today.getTime()){ today=n; renderAll(); } }
+  setInterval(refreshToday,30000);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden){ refreshToday(); sync(); } });
   window.addEventListener('online',sync);
 })();
 </script>
