@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!--DAWON-APP-->
-<meta name="app-version" content="2026.09.25-17">
+<meta name="app-version" content="2026.09.25-18">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#7fd3f5">
 <script>try{var t=localStorage.getItem('dawon-theme');if(/^(ww|cf|nl)$/.test(t))document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
@@ -200,6 +200,18 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
   box-shadow:0 3px 0 var(--cream2)}
 .mgrid button.now{color:var(--leaf-d);border-color:var(--leaf)}
 .mgrid button.on{background:var(--sel);box-shadow:0 3px 0 #e8c33a}
+.sheet.center{align-items:center}
+.confirm{max-width:340px;text-align:center;padding:20px 16px 16px}
+.confirm-title{font-size:19px;margin-bottom:10px}
+.confirm-what{display:inline-block;max-width:100%;padding:6px 14px;border-radius:999px;background:#fffdf5;border:2px dashed var(--cream2);
+  font-size:15px;word-break:break-all}
+.confirm-note{margin-top:8px;font-size:13px;color:var(--muted)}
+.confirm-note:empty{display:none}
+.confirm-btns{display:flex;gap:10px;margin-top:16px}
+.cbtn{flex:1;height:46px;border-radius:999px;border:3px solid #fff;font:inherit;font-size:17px;cursor:pointer;background:var(--cream2);color:var(--ink);
+  box-shadow:0 4px 0 #e2d6b4}
+.cbtn.danger{background:var(--red);color:#fff;box-shadow:0 4px 0 var(--red-d)}
+.cbtn:active{transform:translateY(3px);box-shadow:none}
 .gear{position:absolute;top:calc(env(safe-area-inset-top) + 16px);right:14px;z-index:3;width:44px;height:44px;border-radius:50%;
   border:3px solid #fff;background:var(--cream);box-shadow:0 4px 0 var(--cream2),0 6px 12px rgba(0,0,0,.12);cursor:pointer;padding:8px;
   display:flex;align-items:center;justify-content:center}
@@ -285,6 +297,17 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
     <div class="list" id="monthList"></div>
   </section>
 </div>
+<div class="sheet center" id="delSheet" hidden>
+  <div class="sheet-card confirm" role="alertdialog" aria-modal="true" aria-labelledby="delTitle" aria-describedby="delWhat">
+    <div class="confirm-title" id="delTitle">이 일정을 지울까요?</div>
+    <div class="confirm-what" id="delWhat"></div>
+    <div class="confirm-note" id="delNote"></div>
+    <div class="confirm-btns">
+      <button type="button" class="cbtn" id="delNo">취소</button>
+      <button type="button" class="cbtn danger" id="delYes">지우기</button>
+    </div>
+  </div>
+</div>
 <div class="sheet" id="jumpSheet" hidden>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="jumpTitle">
     <h3><span id="jumpTitle">날짜 이동</span><button class="sheet-x" id="jumpClose" type="button" aria-label="닫기">×</button></h3>
@@ -308,7 +331,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
     </div>
   </div>
 </div>
-<div class="ver">버전 2026.09.25-17</div>
+<div class="ver">버전 2026.09.25-18</div>
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn" type="button">되돌리기</button></div>
 
 <script>
@@ -549,7 +572,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
       a.addEventListener('click',function(ev){ ev.stopPropagation(); ev.preventDefault(); openMap(e.place); }); tx.appendChild(a); }
     r.appendChild(tx);
     var x=el('button','del','×'); x.type='button'; x.setAttribute('aria-label','삭제');
-    x.addEventListener('click',function(ev){ ev.stopPropagation(); remove(e.id); });
+    x.addEventListener('click',function(ev){ ev.stopPropagation(); askDelete(e,occK); });
     r.appendChild(x);
     return r;
   }
@@ -692,6 +715,19 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
     selectDate(parse(v));
     if(who&&$('text').value.trim()&&!rangeMode) toast('📅 '+md(v)+' · 추가를 누르면 이 날에 들어가요',false,2500);
   });
+  // 지우기 전에 한 번 확인
+  var delId=null;
+  function askDelete(e,occK){
+    delId=e.id;
+    var when=isSpan(e)?md(e.date)+'~'+md(e.end):md(e.rep==='y'?occK:e.date);
+    $('delWhat').textContent=when+' · '+NAMES[e.who]+' · '+(e.time?shortTime(e.time)+' ':'')+e.text;
+    $('delNote').textContent=e.rep==='y'?'🔁 매년 반복 일정이라 모든 해에서 지워져요':isSpan(e)?'🧳 여러 날 일정 전체가 지워져요':'';
+    $('delSheet').hidden=false; $('delNo').focus();
+  }
+  function closeDelete(){ $('delSheet').hidden=true; delId=null; }
+  $('delYes').addEventListener('click',function(){ var id=delId; closeDelete(); if(id) remove(id); });
+  $('delNo').addEventListener('click',closeDelete);
+  $('delSheet').addEventListener('click',function(ev){ if(ev.target===this) closeDelete(); });
   // 년·월 골라서 이동
   var jumpY=viewY;
   function renderJump(){
@@ -809,7 +845,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
   $('gearBtn').addEventListener('click',openSettings);
   $('settingsClose').addEventListener('click',closeSettings);
   $('settings').addEventListener('click',function(ev){ if(ev.target===this) closeSettings(); });
-  document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ closeSettings(); $('jumpSheet').hidden=true; } });
+  document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ closeSettings(); $('jumpSheet').hidden=true; closeDelete(); } });
 
   renderAll();
   // 예전 버전에서 이 폰에만 저장된 일정도 서버로 올림 (한 번만)
