@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!--DAWON-APP-->
-<meta name="app-version" content="2026.09.25-14">
+<meta name="app-version" content="2026.09.25-15">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#7fd3f5">
 <script>try{var t=localStorage.getItem('dawon-theme');if(/^(ww|cf|nl)$/.test(t))document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
@@ -127,7 +127,10 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
 .compose button.both{background:var(--purple);box-shadow:0 4px 0 var(--purple-d)}
 .chip.both{background:var(--purple)}
 .item.both{border-color:#cdb8f3}.item.both .who{background:var(--purple)}
-.compose input.time{flex:none;width:118px;padding:0 12px;text-align:center}
+.compose input.time{flex:none;width:100px;padding:0 8px;text-align:center}
+.datepick{position:relative;flex:none;height:46px;padding:0 12px;border-radius:999px;border:3px solid #fff;background:var(--cream);
+  box-shadow:0 4px 0 var(--cream2);display:flex;align-items:center;font-size:16px;color:var(--ink);white-space:nowrap;cursor:pointer}
+.datepick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;cursor:pointer}
 .placewrap{position:relative;flex:1;min-width:0;display:flex}
 .placewrap input{padding-right:48px !important}
 .compose .mapin{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;padding:0;border:0;border-radius:50%;
@@ -231,6 +234,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
   </div>
   <div class="compose">
     <input id="text" type="text" maxlength="60" placeholder="일정 내용" autocomplete="off">
+    <label class="datepick"><span id="dateLbl"></span><input id="dateIn" type="date" aria-label="날짜 고르기"></label>
     <input id="time" class="time" type="time" aria-label="시간 (선택)">
   </div>
   <div class="compose">
@@ -284,7 +288,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
     </div>
   </div>
 </div>
-<div class="ver">버전 2026.09.25-14</div>
+<div class="ver">버전 2026.09.25-15</div>
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn" type="button">되돌리기</button></div>
 
 <script>
@@ -446,6 +450,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
   // ---------- 그리기 ----------
   function renderHeader(){
     $('selLabel').textContent=label(today);
+    var pk=editing?editDate:key(sel); $('dateLbl').textContent='📅 '+md(pk); $('dateIn').value=pk;
     $('dayTitle').textContent=label(sel);
     renderDdays();
   }
@@ -659,6 +664,14 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
     if(!editing) toast(repMode?'🔁 추가하는 일정이 해마다 나와요':'매년 반복 끔',false,repMode?2500:1200);
     renderPeople(); renderGrid(); });
   $('sync').addEventListener('click',function(){ toast(statusMsg,false,3000); });
+  // 일정 내용 옆 날짜 고르기: 고른 날짜로 이동하고, 추가 버튼은 그 날짜에 넣음
+  $('dateIn').addEventListener('click',function(){ try{ this.showPicker(); }catch(e){} });
+  $('dateIn').addEventListener('change',function(){
+    var v=this.value; if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+    if(editing){ setEditDate(v); selectDate(parse(v)); renderPeople(); return; }
+    selectDate(parse(v));
+    if(who&&$('text').value.trim()&&!rangeMode) toast('📅 '+md(v)+' · 추가를 누르면 이 날에 들어가요',false,2500);
+  });
   $('cancelEdit').addEventListener('click',endEdit);
   $('mapCheck').addEventListener('click',function(){ openMap($('place').value.trim()); });
   $('addBtn').addEventListener('click',submit);
