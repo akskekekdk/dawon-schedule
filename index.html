@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!--DAWON-APP-->
-<meta name="app-version" content="2026.09.25-6">
+<meta name="app-version" content="2026.09.25-7">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#7fd3f5">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -177,7 +177,7 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
     <button class="pbtn dy" data-who="dy" type="button"><span class="dot"></span>다윤</button>
   </div>
   <div class="compose">
-    <input id="text" type="text" maxlength="60" placeholder="일정 내용 (비우면 이름만)" autocomplete="off">
+    <input id="text" type="text" maxlength="60" placeholder="일정 내용" autocomplete="off">
     <input id="time" class="time" type="time" aria-label="시간 (선택)">
   </div>
   <div class="compose">
@@ -215,7 +215,7 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
     <div class="list" id="monthList"></div>
   </section>
 </div>
-<div class="ver">버전 2026.09.25-6</div>
+<div class="ver">버전 2026.09.25-7</div>
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="undoBtn" type="button">되돌리기</button></div>
 
 <script>
@@ -406,9 +406,9 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
     function name(){ h.appendChild(el('b',who,NAMES[who])); }
     if(editing){ h.appendChild(document.createTextNode('✏️ '+label(parse(editDate))+' 일정 수정 중 · 날짜를 누르면 날짜가 바뀌어요 · 다 고치면 저장')); }
     else if(who&&rangeMode&&rangeStart){ name(); h.appendChild(document.createTextNode(' · '+md(rangeStart)+'부터 · 끝나는 날을 눌러주세요')); }
-    else if(who&&rangeMode){ name(); h.appendChild(document.createTextNode(' 선택됨 · 시작하는 날과 끝나는 날을 차례로 눌러주세요')); }
-    else if(who){ name(); h.appendChild(document.createTextNode(' 선택됨 · 날짜를 누르면 '+COLORS[who]+' 일정이 추가돼요')); }
-    else h.textContent='상원·함께·다윤 중 하나를 고른 뒤 날짜를 누르면 일정이 추가돼요 · 아래 일정을 누르면 고칠 수 있어요';
+    else if(who&&rangeMode){ name(); h.appendChild(document.createTextNode(' 선택됨 · 내용을 적고 시작하는 날과 끝나는 날을 차례로 눌러주세요')); }
+    else if(who){ name(); h.appendChild(document.createTextNode(' 선택됨 · 내용을 적고 날짜를 누르면 '+COLORS[who]+' 일정이 추가돼요')); }
+    else h.textContent='상원·함께·다윤 중 하나를 고르고 내용을 적은 뒤 날짜를 누르면 일정이 추가돼요 · 아래 일정을 누르면 고칠 수 있어요';
   }
   function renderGrid(){
     $('monthTitle').textContent=viewY+'년 '+(viewM+1)+'월';
@@ -490,7 +490,8 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
   function clearInputs(){ $('text').value=''; $('place').value=''; $('time').value=''; $('endDate').value=''; }
   function addEvent(k,end){
     if(!who){ toast('먼저 상원·함께·다윤 중에 골라주세요',false); return false; }
-    var t=$('text').value.trim()||NAMES[who];
+    var t=$('text').value.trim();
+    if(!t){ toast('일정 내용을 먼저 적어주세요',false); return false; }
     var ne={id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),date:k,who:who,text:t,place:$('place').value.trim(),
       time:$('time').value||'',end:end||'',rep:repMode?'y':'',t:Date.now()};
     events.push(ne); save(); pushInsert(ne); clearInputs();
@@ -525,7 +526,8 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
     if(rangeMode){ end=$('endDate').value||'';
       if(!end){ toast('끝나는 날을 골라주세요',false); return; }
       if(end<=editDate){ toast('끝나는 날은 시작하는 날보다 뒤여야 해요',false); return; } }
-    e.date=editDate; e.who=who; e.text=$('text').value.trim()||NAMES[who]; e.place=$('place').value.trim();
+    if(!$('text').value.trim()){ toast('일정 내용을 적어주세요',false); return; }
+    e.date=editDate; e.who=who; e.text=$('text').value.trim(); e.place=$('place').value.trim();
     e.time=$('time').value||''; e.end=end; e.rep=repMode?'y':'';
     save(); pushUpdate(e); endEdit();
     toast('일정을 고쳤어요',false);
@@ -562,12 +564,13 @@ header h1{margin:0;font-size:28px;font-weight:400;letter-spacing:.5px;text-shado
     var c=ev.target.closest('.cell'); if(!c||c.classList.contains('empty'))return;
     var k=c.getAttribute('data-k'), added=false;
     if(editing){ setEditDate(k); renderAll(); return; }
-    if(who&&rangeMode){
+    var ready=who&&!!$('text').value.trim();
+    if(ready&&rangeMode){
       if(!rangeStart){ rangeStart=k; sel=parse(k); renderAll(); return; }
       var a=rangeStart<k?rangeStart:k; added=addRange(k); k=a;
     } else {
       sel=parse(k);
-      added=who?addEvent(k):false;
+      added=ready?addEvent(k):false;
       renderHeader();renderGrid();renderLists();
     }
     var nc=document.querySelector('.cell[data-k="'+k+'"]'); if(nc&&added){nc.classList.add('flash');}
