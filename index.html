@@ -381,7 +381,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
     at_time:e.time||null,end_date:e.end||null,repeat:e.rep||null}; }
   function fromRow(r){ return {id:r.id,date:r.date,who:r.who,text:r.text,place:r.place||'',t:r.created_at?Date.parse(r.created_at):0,
     time:r.at_time||'',end:r.end_date||'',rep:r.repeat||''}; }
-  var statusMsg='', lastErr='';
+  var statusMsg='', lastErr='', pushed=false;
   function setStatus(ok,msg,err){ online=ok; var d=$('sync'); if(!d)return;
     statusMsg=msg||(ok?'서버에 연결됨 · 일정이 자동으로 저장·공유돼요':'오프라인');
     d.className='syncdot '+(ok?'on':'off')+(err?' err':''); d.title=statusMsg;
@@ -403,7 +403,7 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
       if(!isExtra(r)&&missingFn(e)) return v1Del(r.id).then(function(){ return v1Add(r); });
       throw e; });
     else p=v1Del(op.id);
-    return p.then(function(){ var i=queue.indexOf(op); if(i>=0) queue.splice(i,1); save(); return flushQueue(); });
+    return p.then(function(){ var i=queue.indexOf(op); if(i>=0) queue.splice(i,1); pushed=true; save(); return flushQueue(); });
   }
   function fetchList(){
     return sbFetch('rpc/dawon_list2',{method:'POST',body:{p_secret:SECRET}}).catch(function(e){
@@ -421,7 +421,10 @@ html[data-theme=nl] .bg{background-image:url("data:image/svg+xml;base64,PHN2ZyB4
         else if(op.op==='upd'){ for(var i=0;i<remote.length;i++) if(remote[i].id===op.row.id) remote[i]=fromRow(op.row); }
         else remote=remote.filter(function(e){return e.id!==op.id});
       });
+      var changed=pushed||JSON.stringify(events)!==JSON.stringify(remote); pushed=false;
       events=remote; save();
+      // 안드로이드 앱이면 홈 화면 위젯도 바로 새로고침
+      if(changed&&window.DawonNative) try{ DawonNative.refreshWidget(); }catch(_){}
       if(pushErr&&pushErr.status) setStatus(true,'불러오기는 되지만 저장이 안 돼요 · '+explain(pushErr),true); else setStatus(true);
       renderHeader(); renderGrid(); renderLists();
     }).catch(function(e){ setStatus(false,explain(e),!!(e&&e.status)); })
